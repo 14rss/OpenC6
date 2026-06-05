@@ -1,0 +1,16 @@
+What's next:
+- Visual overhaul (New graphics, menus, better hand-drawn icons, dark/light mode) [focusing on this]
+- SFX overhaul (New sound effect system that plays my own personally recorded sound effects)
+- AI improvements/scalability (Easy/Medium/Hard/Expert game modes, AI vs. AI mode, and ability to see AI's next move) [focusing on this]
+- Added support for player to change game board size easily in editor (Change board size in the script, using a new() function to spawn a smaller/larger playable grid)
+- (1) Performance optimizations (Possible optimizations include but are not limited to: VRAM compression, lowering max FPS to allow 15-30FPS to reduce power usage) [focusing on this]
+- (2) Performance optimizations (Threading support, lower file size - the MacOS version is significantly larger currently because it encodes binary for both silicon and x86 chipsets. My plan would be to completely separate the two versions)
+- Add more win/lose scenarios (New win conditions that make the game more  or less challenging, depending on what you choose E.G. 3x2 rectangle win condition)
+- Linux build (The game runs perfectly under Proton 9, but I'd like to have an official build. The only thing stopping me currently is that I don't know much about Linux, so it would be a fun challenge)
+- 32bit/ARM Win/Linux build for compatibility (MacOS no longer supports 32 bit)
+- Embedded web version (HTML 5)
+- Adaptive VSYNC for all versions in next build
+- Merge audio tracks
+
+For Windows build:
+- ETC2 ASTC (Adaptive Scaling Texture Compression)
