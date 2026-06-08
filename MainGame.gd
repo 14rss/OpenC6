@@ -121,7 +121,7 @@ extends Node2D
 @onready var clack: AudioStreamPlayer = $Main/System/Misc/Clack
 @onready var status_indicator: RichTextLabel = $Main/Board/Graphic/StatusIndicator
 
-# Game Variables
+# ======= GAME VARIABLES =======
 var board: Array = []  # 10x10 array (0=empty, 1=player/blue, 2=ai/red)
 var cell_matrix: Array = []
 var drop_buttons: Array = []
@@ -136,20 +136,21 @@ var animation_current_row: int
 var animation_player: int
 var original_textures: Dictionary = {}  # Store original textures for each cell
 
-# Status animation variables
+# ======= STATUS ANIMATION =======
 var status_animation_timer: Timer = null
 var status_dots: int = 0
 var is_dropping_animation: bool = false
 
-# Textures
-var empty_texture = preload("res://images/tictacClear.png")
-var row_highlight_texture = preload("res://images/tictacRow.png")
-var blue_texture = preload("res://images/C4Blue.png")
-var red_texture = preload("res://images/C4Red.png")
+# ======= TEXTURES =======
+var palette_selected:int = 0
+var empty_textures:Array = [TICTAC_CLEAR,TICTAC_CLEAR_WHITE]
+var row_highlight_texture = TICTAC_ROW
+var blue_texture:Array = [C_4_BLUE,C_4_BLUE_WHITE]
+var red_texture:Array = [C_4_RED,C_4_RED_WHITE]
 
 func _ready() -> void:
 	sys.turn_num = 0
-	# Create timers first
+	# create timers on ready
 	animation_timer = Timer.new()
 	animation_timer.wait_time = 0.3
 	animation_timer.one_shot = false
@@ -162,16 +163,16 @@ func _ready() -> void:
 	add_child(status_animation_timer)
 	status_animation_timer.timeout.connect(_on_status_animation_step)
 	
-	# Initialize game
+	# initialize game
 	initialize_cell_matrix()
 	initialize_board()
 	setup_ui()
 	
-	# Set initial status
+	# initial status (player's turn)
 	update_status_text("turn: player")
 
 func setup_ui() -> void:
-	# Connect drop buttons (row selection buttons)
+	# row selection buttons connection
 	drop_buttons = [
 		drop_row_1, drop_row_2, drop_row_3, drop_row_4, drop_row_5,
 		drop_row_6, drop_row_7, drop_row_8, drop_row_9, drop_row_10
@@ -180,19 +181,19 @@ func setup_ui() -> void:
 	for col in range(10):
 		if drop_buttons[col]:
 			drop_buttons[col].pressed.connect(_on_row_button_pressed.bind(col))
-			# Make them toggleable
+			# row button toggle setting
 			drop_buttons[col].toggle_mode = true
 			drop_buttons[col].button_pressed = false
 	
-	# Connect drop piece button
+	# drop piece button (the "drop" on the right side of your screen)
 	drop_piece.pressed.connect(_on_drop_piece_pressed)
 	drop_piece.toggle_mode = false
 	
-	# Connect AI timer
+	# AI timer to process
 	ai_timer.timeout.connect(_on_ai_timer_timeout)
 
 func initialize_cell_matrix() -> void:
-	# Initialize cell matrix
+	# initialize full cell matrix
 	cell_matrix = [
 		[a_1, a_2, a_3, a_4, a_5, a_6, a_7, a_8, a_9, a_10],
 		[b_1, b_2, b_3, b_4, b_5, b_6, b_7, b_8, b_9, b_10],
@@ -206,26 +207,26 @@ func initialize_cell_matrix() -> void:
 		[j_1, j_2, j_3, j_4, j_5, j_6, j_7, j_8, j_9, j_10]
 	]
 	
-	# Store original textures for all cells
+	# original cell textures
 	for row in range(10):
 		for col in range(10):
 			var cell = cell_matrix[row][col]
 			if cell:
-				original_textures[cell] = empty_texture
+				original_textures[cell] = empty_textures[palette_selected]
 
 func initialize_board() -> void:
-	# Initialize board array
+	# initialize board array (this fills up with cells on run)
 	board = []
 	for row in range(10):
 		board.append([])
 		for col in range(10):
 			board[row].append(0)
 	
-	# Clear all cells visually
-	clear_row_highlight()  # Clear any existing highlights first
+	# cell clear (purely visual)
+	clear_row_highlight()  # clearing cell highlights from possible row selection
 	for row in range(10):
 		for col in range(10):
-			cell_matrix[row][col].texture = empty_texture
+			cell_matrix[row][col].texture = empty_textures[palette_selected]
 	
 	current_turn = 1
 	game_active = true
@@ -233,7 +234,7 @@ func initialize_board() -> void:
 	selected_column = -1
 	clear_all_selections()
 	
-	# Reset status
+	# reset game status
 	stop_status_animation()
 	update_status_text("turn: player")
 
@@ -245,24 +246,24 @@ func clear_all_selections() -> void:
 	clear_row_highlight()
 
 func clear_row_highlight() -> void:
-	# Reset all cells to their original textures (empty or piece texture)
+	# resets all to their original texture (NEW!! based on pallette selected)
 	for row in range(10):
 		for col in range(10):
 			var cell = cell_matrix[row][col]
 			if board[row][col] == 0:
-				cell.texture = empty_texture
+				cell.texture = empty_textures[palette_selected]
 			elif board[row][col] == 1:
-				cell.texture = blue_texture
+				cell.texture = blue_texture[palette_selected]
 			elif board[row][col] == 2:
-				cell.texture = red_texture
+				cell.texture = red_texture[palette_selected]
 
 func highlight_column(col: int) -> void:
-	# First clear any existing highlights
+	# clear highlights as usual
 	clear_row_highlight()
 	
-	# Highlight the entire selected column with the row texture
+	# highlight the entire row of cells below the row button selected
 	for row in range(10):
-		# Only highlight empty cells
+		# only highlight the empty cells
 		if board[row][col] == 0:
 			cell_matrix[row][col].texture = row_highlight_texture
 
@@ -272,18 +273,18 @@ func _on_row_button_pressed(col: int) -> void:
 			drop_buttons[col].button_pressed = false
 		return
 	
-	# If this column is already selected, deselect it
+	# if the column is already selected, this deselects it
 	if selected_column == col:
 		clear_all_selections()
 		update_status_text("turn: player")
 	else:
-		# Clear all selections first
+		# clear selection
 		clear_all_selections()
-		# Select this column
+		# select column
 		selected_column = col
 		if drop_buttons.size() > col:
 			drop_buttons[col].button_pressed = true
-		# Highlight the column
+		# highlight column
 		highlight_column(col)
 		update_status_text("column " + str(col + 1))
 
@@ -303,16 +304,16 @@ func _on_drop_piece_pressed() -> void:
 		clear_all_selections()
 		return
 	
-	# Store the column before clearing selection
+	# store column
 	var drop_col = selected_column
 	
-	# Clear selection before starting animation
+	# clear selection before the dropping animation
 	clear_all_selections()
 	
-	# Start status animation
+	# starts the status animation
 	start_status_animation()
 	
-	# Start falling animation
+	# starts the falling piece animation
 	start_animation(drop_col, target_row, 1)
 
 func start_animation(col: int, target_row: int, player: int) -> void:
@@ -325,40 +326,40 @@ func start_animation(col: int, target_row: int, player: int) -> void:
 
 func _on_animation_step() -> void:
 	if animation_current_row <= animation_target_row:
-		# Play click sound for each step
+		# clicking sound for each celll the piece will pass
 		click.play()
 		
-		# Clear previous cell if not the first step
+		# clear previous cell if not first step
 		if animation_current_row > 0:
-			# Restore the cell above to its proper state (empty or highlighted)
+			# restore cell above
 			if board[animation_current_row - 1][animation_col] == 0:
-				# If it was empty, check if this column is currently selected
+				# if it was empty, check if this should be active
 				if selected_column == animation_col and current_turn == 1 and not is_animating:
 					cell_matrix[animation_current_row - 1][animation_col].texture = row_highlight_texture
 				else:
-					cell_matrix[animation_current_row - 1][animation_col].texture = empty_texture
+					cell_matrix[animation_current_row - 1][animation_col].texture = empty_textures[palette_selected]
 		
-		# Show piece in current cell
-		var piece_texture = blue_texture if animation_player == 1 else red_texture
+		# show piece in cell
+		var piece_texture = blue_texture[palette_selected] if animation_player == 1 else red_texture[palette_selected]
 		cell_matrix[animation_current_row][animation_col].texture = piece_texture
 		
 		animation_current_row += 1
 	else:
-		# Animation complete
+		# animation finishes
 		animation_timer.stop()
 		
-		# Play clack sound
+		# clack sound is button_press in editor - repurposed from another game
 		clack.play()
 		
-		# Place final piece in board array
+		# final piece in board array
 		board[animation_target_row][animation_col] = animation_player
 		
 		is_animating = false
 		
-		# Stop status animation
+		# stop the "dropping..." status animation
 		stop_status_animation()
 		
-		# Check for win
+		# check to see if the piece completes a win
 		if check_win(animation_target_row, animation_col, animation_player):
 			if animation_player == 1:
 				update_status_text("outcome_is: player wins")
@@ -367,22 +368,22 @@ func _on_animation_step() -> void:
 			game_over(animation_player)
 			return
 		
-		# Check for draw
+		# check to see if the piece causes a draw
 		if is_board_full():
 			update_status_text("outcome_is: draw")
 			game_draw()
 			return
 		
-		# Switch turns
+		# switches turn over
 		current_turn = 3 - current_turn
 		
-		# Update status for next turn
+		# update the status for next turn
 		if current_turn == 1:
 			update_status_text("select column")
 		else:
 			update_status_text("turn: computer")
 		
-		# Start AI turn if needed
+		# start AI turn ^^^
 		if current_turn == 2 and game_active:
 			ai_timer.start()
 
@@ -416,7 +417,7 @@ func find_lowest_empty_row(col: int) -> int:
 			return row
 	return -1
 
-# Improved AI that evaluates the board and makes strategic moves
+# AI is the same as previous build, this one is just aesthetics-based
 func get_best_ai_move() -> int:
 	var best_score = -1
 	var best_column = -1
@@ -424,27 +425,27 @@ func get_best_ai_move() -> int:
 	for col in range(10):
 		var row = find_lowest_empty_row(col)
 		if row == -1:
-			continue  # Column is full
+			continue  # column full, continue
 		
 		var score = 0
 		
-		# 1. Check if AI can win in this column (highest priority)
+		# 1. check to see if AI can win - priority
 		if check_win_if_placed(col, row, 2):
-			return col  # Immediate win move
+			return col  # insta-win move
 		
-		# 2. Check if player would win in this column (blocking priority)
+		# 2. check to see if player can win - block
 		if check_win_if_placed(col, row, 1):
-			score += 10000  # Very high score for blocking
+			score += 10000  # high score for blocking
 		
-		# 3. Evaluate potential connections
-		score += evaluate_position(col, row, 2)  # How good for AI
-		score += evaluate_position(col, row, 1) * 0.8  # Blocking player (slightly lower priority)
+		# 3. evaluate connections
+		score += evaluate_position(col, row, 2)  # potential
+		score += evaluate_position(col, row, 1) * 0.8  # blocking player, lower priority
 		
-		# 4. Prefer center columns (better strategic position)
+		# 4. prefer center columns for strategic
 		var center_bonus = 10 - abs(4.5 - col) * 2
 		score += center_bonus
 		
-		# 5. Add small random factor to vary gameplay (0-5)
+		# 5. random factor (0-5)
 		score += randi() % 5
 		
 		if score > best_score:
@@ -454,13 +455,13 @@ func get_best_ai_move() -> int:
 	return best_column
 
 func check_win_if_placed(col: int, row: int, player: int) -> bool:
-	# Temporarily place a piece
+	# place temporary piece
 	board[row][col] = player
 	
-	# Check if this move would win
+	# would move win?
 	var would_result = check_win(row, col, player)
 	
-	# Remove the temporary piece
+	# remove the temporary piece
 	board[row][col] = 0
 	
 	return would_result
@@ -468,15 +469,15 @@ func check_win_if_placed(col: int, row: int, player: int) -> bool:
 func evaluate_position(col: int, row: int, player: int) -> int:
 	var total_score = 0
 	
-	# Temporarily place piece
+	# place temporary piece
 	board[row][col] = player
 	
-	# Check all 4 directions
+	# check all directions
 	var directions = [
-		[0, 1], [0, -1],   # Horizontal
-		[1, 0], [-1, 0],   # Vertical
-		[1, 1], [-1, -1],  # Diagonal down-right
-		[1, -1], [-1, 1]   # Diagonal down-left
+		[0, 1], [0, -1],   # hor.
+		[1, 0], [-1, 0],   # ver.
+		[1, 1], [-1, -1],  # diag-DR
+		[1, -1], [-1, 1]   # diag-DL
 	]
 	
 	for i in range(0, 8, 2):
@@ -484,7 +485,7 @@ func evaluate_position(col: int, row: int, player: int) -> int:
 		count += count_direction(row, col, directions[i][0], directions[i][1], player)
 		count += count_direction(row, col, directions[i+1][0], directions[i+1][1], player)
 		
-		# Score based on consecutive pieces
+		# scored based on consecutive pieces
 		match count:
 			2:
 				total_score += 10
@@ -495,7 +496,7 @@ func evaluate_position(col: int, row: int, player: int) -> int:
 			5:
 				total_score += 10000
 	
-	# Remove temporary piece
+	# remove the temporary piece
 	board[row][col] = 0
 	
 	return total_score
@@ -513,15 +514,15 @@ func count_direction(row: int, col: int, delta_row: int, delta_col: int, player:
 	return count
 
 func check_win(row: int, col: int, player: int) -> bool:
-	# Check horizontal
+	# check hor.
 	var count = 1
-	# Right
+	# right
 	for c in range(col + 1, 10):
 		if board[row][c] == player:
 			count += 1
 		else:
 			break
-	# Left
+	# left
 	for c in range(col - 1, -1, -1):
 		if board[row][c] == player:
 			count += 1
@@ -530,15 +531,15 @@ func check_win(row: int, col: int, player: int) -> bool:
 	if count >= 6:
 		return true
 	
-	# Check vertical
+	# check ver.
 	count = 1
-	# Down
+	# down
 	for r in range(row + 1, 10):
 		if board[r][col] == player:
 			count += 1
 		else:
 			break
-	# Up
+	# up
 	for r in range(row - 1, -1, -1):
 		if board[r][col] == player:
 			count += 1
@@ -547,7 +548,7 @@ func check_win(row: int, col: int, player: int) -> bool:
 	if count >= 6:
 		return true
 	
-	# Check diagonal down-right
+	# check diag-DR
 	count = 1
 	var r = row + 1
 	var c = col + 1
@@ -570,7 +571,7 @@ func check_win(row: int, col: int, player: int) -> bool:
 	if count >= 6:
 		return true
 	
-	# Check diagonal down-left
+	# check diag-DL
 	count = 1
 	r = row + 1
 	c = col - 1
@@ -606,12 +607,10 @@ func game_over(_winner: int) -> void:
 	sys.update()
 	game_active = false
 	stop_status_animation()
-	# Add your win screen logic here
 
 func game_draw() -> void:
 	game_active = false
 	stop_status_animation()
-	# Add your draw screen logic here
 
 func _on_ai_timer_timeout() -> void:
 	sys.turn_num += 1
@@ -619,12 +618,11 @@ func _on_ai_timer_timeout() -> void:
 	if not game_active or is_animating or current_turn != 2:
 		return
 	
-	# Get the best move using the procedural AI
 	var best_col = get_best_ai_move()
 	
 	if best_col != -1:
 		var target_row = find_lowest_empty_row(best_col)
-		# Start status animation for AI drop
+		# status animation for AI
 		start_status_animation()
 		start_animation(best_col, target_row, 2)
 	
@@ -639,32 +637,75 @@ func _input(event: InputEvent) -> void:
 func new_game() -> void:
 	sys.turn_num = 0
 	sys.update()
-	# Stop any ongoing animations
+	# stop animations
 	if is_animating:
 		animation_timer.stop()
 		is_animating = false
 	
-	# Stop AI timer if running
+	# stop AI timer
 	if ai_timer and ai_timer.is_inside_tree():
 		ai_timer.stop()
 	
-	# Stop status animation
+	# stop status animations
 	stop_status_animation()
 	
-	# Reset the board
+	# reset board
 	initialize_board()
 	
-	# Reset game state
+	# reset game
 	game_active = true
-	current_turn = 1  # Player starts
+	current_turn = 1  # player starts
 	selected_column = -1
 	is_animating = false
 	
-	# Clear any selections
+	# clear selections
 	clear_all_selections()
 	
-	# Update status
+	# update status
 	update_status_text("turn: player")
 	
-	# Optional: Add a small delay before allowing moves to prevent accidental inputs
+	# small delay before moves
 	await get_tree().create_timer(0.1).timeout
+
+# ======== THEMES ========
+@onready var white_bg: ColorRect = $Main/Board/Graphic/WhiteBG
+@onready var black_bg: ColorRect = $Main/Board/Graphic/BlackBG
+const C_4_BLUE = preload("uid://b347tilvmn2dn")
+const C_4_BLUE_WHITE = preload("uid://cs0tuuhhie1d4")
+const C_4_CHOOSE_NORMAL = preload("uid://djdvvx2h7fffr")
+const C_4_CHOOSE_NORMAL_WHITE = preload("uid://tap2w5pg30wb")
+const C_4_CHOOSE_PRESSED = preload("uid://chexuy8fd6or5")
+const C_4_CHOOSE_SELECTED = preload("uid://c0es637a8bllj")
+const C_4_RED = preload("uid://dw0bf6pvuyy5u")
+const C_4_RED_WHITE = preload("uid://dmfnwcdhgnny6")
+const C_6_DROP_HOVER = preload("uid://bd2dvo1hyruvi")
+const C_6_DROP_REGULAR = preload("uid://h602lswpaleo")
+const C_6_DROP_REGULAR_WHITE = preload("uid://csnp63e5ar6j2")
+const C_6_DROP_SELECTED = preload("uid://cvkg5qkq35ryx")
+const TICTAC_CLEAR = preload("uid://dwr86upv5djh0")
+const TICTAC_CLEAR_WHITE = preload("uid://dw8yuo83lgjbk")
+const TICTAC_ROW = preload("uid://ejpcum3f0jn7")
+@onready var dark_light_switch: CheckButton = $Main/Board/Graphic/Dark_Light_Switch
+const LIGHT_THEME = preload("uid://darx860hkmtto")
+const DARK_THEME = preload("uid://cb17ux4f6en5r")
+
+func _on_dark_light_switch_toggled(toggled_on: bool) -> void:
+	if toggled_on:
+		dark_light_switch.theme = DARK_THEME
+		palette_selected = 1
+		white_bg.visible = false
+		black_bg.visible = true
+		dark_theme()
+		# makes icons white and BG black
+	else:
+		dark_light_switch.theme = LIGHT_THEME
+		palette_selected = 0
+		white_bg.visible = true
+		black_bg.visible = false
+		light_theme()
+		# makes icons black and BG white
+
+func dark_theme():
+	drop_piece.texture_normal = C_6_DROP_REGULAR_WHITE
+func light_theme():
+	drop_piece.texture_normal = C_6_DROP_REGULAR
