@@ -7,14 +7,15 @@ var selected_status:String
 
 
 func update():
-	if turn_num == 0:
-		DiscordRPC.details = game_status[1]
-	if turn_num > 0:
-		DiscordRPC.details = game_status[0]
-	if finish_state == true:
-		DiscordRPC.details = game_status[2]
-	DiscordRPC.state = "turn: " + str(turn_num)
-	DiscordRPC.refresh()
+	if DiscordRPC.get_is_discord_working() == true:
+		if turn_num == 0:
+			DiscordRPC.details = game_status[1]
+		if turn_num > 0:
+			DiscordRPC.details = game_status[0]
+		if finish_state == true:
+			DiscordRPC.details = game_status[2]
+		DiscordRPC.state = "turn: " + str(turn_num)
+		DiscordRPC.refresh()
 
 func _ready():
 	#Application ID
